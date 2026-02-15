@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Just a lilac.</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #05050a;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        cursor: default;
+      }
+
+      canvas {
+        display: block;
+        filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.3));
+      }
+
+      #message-container {
+        position: absolute;
+        max-width: 450px;
+        padding: 20px;
+        text-align: center;
+        pointer-events: none;
+        z-index: 10;
+        /* Move container down slightly to clear the "Hi Kristin!" pixels */
+        transform: translateY(40px);
+      }
+
+      #message {
+        color: #f3e8ff;
+        /* Instagram-style Typewriter Serif Stack */
+        font-family: "Courier New", Courier, Georgia, serif;
+        font-size: 1.05rem;
+        line-height: 1.8;
+        letter-spacing: 0.5px;
+        opacity: 0;
+        transition: opacity 4s ease-in-out;
+        text-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="lilacCanvas"></canvas>
+
+    <div id="message-container">
+      <div id="message">
+        Meet my horrible attempt at coding a lilac. haha. <br />
+        Wanted to give you a flower with more personality. <br />
+        Happy Valentine's Day. <br /><br />
+        — L
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("lilacCanvas");
+      const ctx = canvas.getContext("2d");
+      const msgDiv = document.getElementById("message");
+
+      let particles = [];
+      let isRevealed = false;
+      let revealStartTime = 0;
+      const particleCount = 6000;
+
+      function initCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      function getTextPoints(text) {
+        const tempCanvas = document.createElement("canvas");
+        const tempCtx = tempCanvas.getContext("2d");
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const fontSize = Math.min(canvas.width / 8, 80);
+        tempCtx.font = `italic ${fontSize}px Georgia`;
+        tempCtx.textAlign = "center";
+        tempCtx.textBaseline = "middle";
+        tempCtx.fillStyle = "white";
+        tempCtx.fillText(text, canvas.width / 2, canvas.height / 2 - 150);
+
+        const imageData = tempCtx.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        ).data;
+        const points = [];
+        for (let y = 0; y < canvas.height; y += 4) {
+          for (let x = 0; x < canvas.width; x += 4) {
+            const index = (y * canvas.width + x) * 4;
+            if (imageData[index + 3] > 128) points.push({ x, y });
+          }
+        }
+        return points;
+      }
+
+      function createBouquetPoints() {
+        const pts = [];
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2 + 80;
+
+        for (let i = 0; i < particleCount; i++) {
+          let x, y, hue, saturation, lightnessBase, size;
+          if (i < 4500) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.pow(Math.random(), 2) * 110;
+            const cluster = i % 5;
+            let offX = 0,
+              offY = 0;
+            if (cluster === 1) {
+              offX = -50;
+              offY = -50;
+            }
+            if (cluster === 2) {
+              offX = 55;
+              offY = -40;
+            }
+            if (cluster === 3) {
+              offX = -25;
+              offY = -120;
+            }
+            if (cluster === 4) {
+              offX = 30;
+              offY = -100;
+            }
+            x = centerX + Math.cos(angle) * radius + offX;
+            y = centerY - 140 + Math.sin(angle) * radius + offY;
+            hue = 260 + Math.random() * 35;
+            saturation = 60 + Math.random() * 30;
+            lightnessBase = 45 + Math.random() * 30;
+            size = Math.random() * 2 + 0.5;
+          } else {
+            const t = Math.random();
+            x = centerX + Math.sin(t * 4) * 15 + (Math.random() - 0.5) * 8;
+            y = centerY - 80 + t * 220;
+            hue = 120 + Math.random() * 20;
+            saturation = 30;
+            lightnessBase = 20;
+            size = Math.random() * 2.5 + 1;
+          }
+          pts.push({
+            startX: Math.random() * canvas.width,
+            startY: Math.random() * canvas.height,
+            flowerX: x,
+            flowerY: y,
+            textX: x,
+            textY: y,
+            h: hue,
+            s: saturation,
+            baseL: lightnessBase,
+            shimmerOffset: Math.random() * Math.PI * 2,
+            size: size,
+          });
+        }
+        return pts;
+      }
+
+      function getProgress() {
+        const now = new Date();
+        const secondsPassed =
+          now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const targetSeconds = 80160;
+        return Math.min(secondsPassed / targetSeconds, 1.0);
+        //return 1.0; // TEST MODE
+      }
+
+      function handleInteraction() {
+        if (getProgress() > 0.98 && !isRevealed) {
+          const textPoints = getTextPoints("Hi Kristin!");
+
+          // --- MINI FLOWER CALCULATION ---
+          const miniScale = 0.45;
+          const miniCX = canvas.width / 2;
+          const miniCY = canvas.height / 2 + 350; // Positioned below the signature
+
+          particles.forEach((p, i) => {
+            if (i < textPoints.length) {
+              // Form the "Hi Kristin!" text
+              p.textX = textPoints[i].x;
+              p.textY = textPoints[i].y;
+            } else {
+              // Form the smaller bouquet below the text
+              // We use a math-based distribution similar to the original bouquet
+              if (i < 4500) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.pow(Math.random(), 2) * (110 * miniScale);
+                const cluster = i % 5;
+                let offX = 0,
+                  offY = 0;
+                if (cluster === 1) {
+                  offX = -50 * miniScale;
+                  offY = -50 * miniScale;
+                }
+                if (cluster === 2) {
+                  offX = 55 * miniScale;
+                  offY = -40 * miniScale;
+                }
+                if (cluster === 3) {
+                  offX = -25 * miniScale;
+                  offY = -120 * miniScale;
+                }
+                if (cluster === 4) {
+                  offX = 30 * miniScale;
+                  offY = -100 * miniScale;
+                }
+
+                p.textX = miniCX + Math.cos(angle) * radius + offX;
+                p.textY =
+                  miniCY - 140 * miniScale + Math.sin(angle) * radius + offY;
+              } else {
+                const t = Math.random();
+                p.textX =
+                  miniCX +
+                  Math.sin(t * 4) * (15 * miniScale) +
+                  (Math.random() - 0.5) * (8 * miniScale);
+                p.textY = miniCY - 80 * miniScale + t * (220 * miniScale);
+              }
+            }
+          });
+
+          isRevealed = true;
+          revealStartTime = Date.now();
+          setTimeout(() => {
+            msgDiv.style.opacity = "1";
+          }, 1500);
+        }
+      }
+
+      canvas.addEventListener("click", handleInteraction);
+      canvas.addEventListener("touchstart", handleInteraction);
+
+      function draw() {
+        const elapsed = isRevealed ? (Date.now() - revealStartTime) / 1000 : 0;
+        const chaosDur = 0.7;
+        const formDur = 2.0;
+
+        ctx.fillStyle =
+          isRevealed && elapsed < chaosDur
+            ? "rgba(5, 5, 10, 0.1)"
+            : "rgba(5, 5, 10, 0.25)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const progress = getProgress();
+        const time = Date.now() / 1000;
+
+        if (progress > 0.98 && !isRevealed)
+          document.body.style.cursor = "pointer";
+
+        particles.forEach((p) => {
+          let x = p.startX + (p.flowerX - p.startX) * progress;
+          let y = p.startY + (p.flowerY - p.startY) * progress;
+          let currentL = p.baseL;
+
+          if (isRevealed) {
+            if (elapsed < chaosDur) {
+              const pChaos = elapsed / chaosDur;
+              const dx = x - canvas.width / 2;
+              const dy = y - canvas.height / 2;
+              x += dx * pChaos * 15;
+              y += dy * pChaos * 15;
+              currentL += (100 - currentL) * pChaos;
+            } else {
+              const pForm = Math.min((elapsed - chaosDur) / formDur, 1.0);
+              const ease = 1 - Math.pow(1 - pForm, 3);
+              const dx = x - canvas.width / 2;
+              const dy = y - canvas.height / 2;
+              const xJump = x + dx * 15;
+              const yJump = y + dy * 15;
+              x = xJump + (p.textX - xJump) * ease;
+              y = yJump + (p.textY - yJump) * ease;
+            }
+          }
+
+          const shimmer = Math.sin(time * 2 + p.shimmerOffset) * 12;
+          ctx.fillStyle = `hsl(${p.h}, ${p.s}%, ${currentL + shimmer}%)`;
+          ctx.beginPath();
+          ctx.arc(x, y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        requestAnimationFrame(draw);
+      }
+
+      initCanvas();
+      particles = createBouquetPoints();
+      draw();
+      window.addEventListener("resize", () => {
+        initCanvas();
+        particles = createBouquetPoints();
+      });
+    </script>
+  </body>
+</html>
