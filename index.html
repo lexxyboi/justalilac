@@ -44,6 +44,26 @@
         transition: opacity 4s ease-in-out;
         text-shadow: 0 0 10px rgba(192, 132, 252, 0.4);
       }
+
+      /* --- NEW STYLE FOR INSTRUCTION TEXT --- */
+      #instruction {
+        position: absolute;
+        bottom: 12%; /* Positioned near the bottom of the screen */
+        left: 50%;
+        transform: translateX(-50%);
+
+        color: rgba(243, 232, 255, 0.6);
+        font-family: "Courier New", Courier, Georgia, serif;
+        font-size: 0.8rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+
+        pointer-events: none; /* Allows clicks to pass through to the canvas */
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+        text-shadow: 0 0 8px rgba(192, 132, 252, 0.3);
+        z-index: 5;
+      }
     </style>
   </head>
   <body>
@@ -51,17 +71,20 @@
 
     <div id="message-container">
       <div id="message">
-        Meet my horrible attempt at coding a lilac. haha. <br />
-        Wanted to give you a flower with more personality. <br />
-        Happy Valentine's Day. <br /><br />
+        Meet my horrible attempt at coding a lilac. Haha. <br />
+        Just wanted to give you something with more personality. <br />
+        Happy Valentine's Day. (napod!) <br /><br />
         — L
       </div>
     </div>
+
+    <div id="instruction">Tap the flower</div>
 
     <script>
       const canvas = document.getElementById("lilacCanvas");
       const ctx = canvas.getContext("2d");
       const msgDiv = document.getElementById("message");
+      const instructionDiv = document.getElementById("instruction");
 
       let particles = [];
       let isRevealed = false;
@@ -168,7 +191,8 @@
           now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
         const targetSeconds = 80160;
         return Math.min(secondsPassed / targetSeconds, 1.0);
-        //return 1.0; // TEST MODE
+
+        //return 1.0;
       }
 
       function handleInteraction() {
@@ -187,7 +211,6 @@
               p.textY = textPoints[i].y;
             } else {
               // Form the smaller bouquet below the text
-              // We use a math-based distribution similar to the original bouquet
               if (i < 4500) {
                 const angle = Math.random() * Math.PI * 2;
                 const radius = Math.pow(Math.random(), 2) * (110 * miniScale);
@@ -227,6 +250,11 @@
 
           isRevealed = true;
           revealStartTime = Date.now();
+
+          // Hide instruction immediately
+          instructionDiv.style.opacity = "0";
+
+          // Show message after slight delay
           setTimeout(() => {
             msgDiv.style.opacity = "1";
           }, 1500);
@@ -250,8 +278,18 @@
         const progress = getProgress();
         const time = Date.now() / 1000;
 
-        if (progress > 0.98 && !isRevealed)
+        if (progress > 0.98 && !isRevealed) {
           document.body.style.cursor = "pointer";
+
+          // --- NEW INSTRUCTION LOGIC ---
+          // Gently pulse the instruction text
+          const breathe = 0.5 + Math.sin(time * 2.5) * 0.3;
+          instructionDiv.style.opacity = breathe;
+        } else {
+          document.body.style.cursor = "default";
+          // Hide instruction if not ready or already clicked
+          instructionDiv.style.opacity = "0";
+        }
 
         particles.forEach((p) => {
           let x = p.startX + (p.flowerX - p.startX) * progress;
